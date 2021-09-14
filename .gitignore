@@ -9,3 +9,4 @@ __pycache__/
 
 *.sqlite
 setup.cfg
+.vscode\launch.json
