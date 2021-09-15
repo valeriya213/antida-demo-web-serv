@@ -12,6 +12,7 @@ from fastapi import Form
 from fastapi import HTTPException
 from fastapi import Response
 from fastapi import status
+from fastapi import Depends
 from fastapi.staticfiles import StaticFiles
 
 from passlib.hash import pbkdf2_sha256
@@ -25,6 +26,7 @@ from .models import GreetForm
 from .models import Account as AccountModel
 from .database import Account
 from .database import Session
+from .database import get_session
 
 app = FastAPI()
 app.mount(settings.static_url, StaticFiles(directory=settings.static_directory), name='static')
@@ -85,16 +87,18 @@ def get_accounts():
     '/get-account/{account_id}',
     response_model=AccountModel,
 )
-def get_account(account_id: int):
-    with Session() as session:   
-        try:
-            account = session.execute(
-                select(Account)
-                .where(Account.id == account_id)
-            ).scalar_one()
-            return account
-        except NoResultFound:
-            raise HTTPException(status.HTTP_404_NOT_FOUND) from None
+def get_account(
+    account_id: int,
+    session: Session = Depends(get_session),
+):
+    try:
+        account = session.execute(
+            select(Account)
+            .where(Account.id == account_id)
+        ).scalar_one()
+        return account
+    except NoResultFound:
+        raise HTTPException(status.HTTP_404_NOT_FOUND) from None
 
 
 @app.patch('/edit-account/{account_id}')
