@@ -8,3 +8,6 @@ settings = Dynaconf(
 
 # `envvar_prefix` = export envvars with `export DYNACONF_FOO=bar`.
 # `settings_files` = Load this files in the order.
+
+def get_settings() -> Dynaconf:
+    return settings
