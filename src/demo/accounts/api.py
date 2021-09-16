@@ -1,78 +1,83 @@
 from typing import List
-from typing import Optional
 from fastapi import APIRouter
-from fastapi import File
-from fastapi import UploadFile
-from fastapi import Form
-from fastapi import Response
 from fastapi import Depends
 from fastapi import FastAPI
+from fastapi import UploadFile
+from fastapi import File
+from fastapi import status
+from fastapi import Request
 
-from .schemas import AccountUpdate
+from .schemas import AccountUpdate, AccountCreate
 from .schemas import Account as AccountSchema
-from .schemas import AccountCreate
 from .services import AccountService
 
 
-router = APIRouter()
+router = APIRouter(
+    prefix='/accounts',
+)
 
 
 def initialize_app(app: FastAPI):
     app.include_router(router)
 
 
-@router.post('/create-account')
+@router.post(
+    '', 
+    response_model=AccountSchema,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_account(
-    email: str = Form(...),
-    username: str = Form(...),
-    password: str = Form(...),
+    account_create: AccountCreate,
     service: AccountService = Depends(),
 ):
-    service.create_account(
-        AccountCreate(
-            email=email,
-            username=username,
-            password=password,
-        ),
-    )
-    return Response()
+    account = service.create_account(account_create)
+    return account
 
 
-@router.get(
-    '/get-accounts',
-    response_model=List[AccountSchema],
- )
+@router.get('', response_model=List[AccountSchema])
 def get_accounts(
     service: AccountService = Depends(),
 ):
     return service.get_accounts()
 
 
-@router.get(
-    '/get-account/{account_id}',
-    response_model=AccountSchema,
-)
+@router.get('/{account_id}')
 def get_account(
     account_id: int,
+    request: Request,
     service: AccountService = Depends(),
 ):
-    return service.get_account(account_id)
+    account = service.get_account(account_id)
+    return {
+        '_data': AccountSchema.from_orm(account),
+        '_meta': {
+            'self': request.url_for('get_account', account_id=account_id),
+            'parent': request.url_for('get_accounts'),
+        }
+    }
 
 
-@router.patch('/edit-account/{account_id}')
+@router.patch('/{account_id}', response_model=AccountSchema)
 def edit_account(
     account_id: int,
-    first_name: Optional[str] = Form(None),
-    last_name: Optional[str] = Form(None),
-    avatar: Optional[UploadFile] = File(None),
+    account_update: AccountUpdate,
     service: AccountService = Depends()
 ):
-    service.update_account(
+    account = service.update_account(
         account_id,
-        AccountUpdate(
-            first_name=first_name,
-            last_name=last_name,
-            avatar=avatar,
-        ),
+        account_update,
     )
-    return Response()
+    return account
+
+
+@router.put(
+    '/{account_id}/avatar',
+    response_model=AccountSchema,
+)
+def update_account_avatar(
+    account_id: int,
+    avatar: UploadFile = File(...),
+    service: AccountService = Depends()
+):
+    account = service.update_account_avatar(account_id, avatar)
+    return account
