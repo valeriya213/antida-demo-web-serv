@@ -1,4 +1,5 @@
 from sqlalchemy import Column
+from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import String
 
@@ -15,3 +16,11 @@ class Account(Base):
     first_name = Column(String)
     last_name = Column(String)
     avatar = Column(String)
+
+
+class RefreshToken(Base):
+    __tablename__ = 'refresh_tokens'
+
+    id = Column(Integer, primary_key=True)
+    account_id = Column(ForeignKey('accounts.id'), nullable=False, unique=True)
+    token = Column(String, nullable=False)
